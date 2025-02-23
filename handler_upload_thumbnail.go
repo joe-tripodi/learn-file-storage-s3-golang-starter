@@ -32,7 +32,6 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 
 	fmt.Println("uploading thumbnail for video", videoID, "by user", userID)
 
-	// TODO: implement the upload here
 	const maxMem = 10 << 20 // 10MB
 	r.ParseMultipartForm(int64(maxMem))
 
@@ -42,6 +41,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	defer file.Close()
+
 	mediaType := header.Header.Get("Content-Type")
 	if mediaType == "" {
 		respondWithError(w, http.StatusBadRequest, "Missing Content-Type for thumbnail", nil)
