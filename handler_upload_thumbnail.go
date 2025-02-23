@@ -41,10 +41,18 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	defer file.Close()
-	meadiType := header.Header.Get("Content-Type")
-	fmt.Println(meadiType)
+	mediaType := header.Header.Get("Content-Type")
+	if mediaType == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing Content-Type for thumbnail", nil)
+		return
+	}
 
 	dat, err := io.ReadAll(file)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error reading file", err)
+		return
+	}
+
 	video, err := cfg.db.GetVideo(videoID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to find video", err)
@@ -57,15 +65,16 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 
 	tn := thumbnail{
 		data:      dat,
-		mediaType: meadiType,
+		mediaType: mediaType,
 	}
+	videoThumbnails[videoID] = tn
 
 	thumbnailUrl := fmt.Sprintf("http://localhost:%s/api/thumbnails/%v", cfg.port, videoID)
 	video.ThumbnailURL = &thumbnailUrl
 
-	videoThumbnails[videoID] = tn
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
+		delete(videoThumbnails, videoID)
 		respondWithError(w, http.StatusInternalServerError, "Unable to update video", err)
 		return
 	}
